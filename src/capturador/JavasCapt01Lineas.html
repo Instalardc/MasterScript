@@ -1,0 +1,241 @@
+<!-- JavasCapt01Lineas -->
+
+<script>
+
+// ── Variables globales
+let lineas = [];
+let contadorLineas = 0;
+let contactoSeleccionado = null;
+let timeoutBusqueda;
+
+// ── Cálculos
+function calcularM2(l) {
+  return (parseFloat(l.base) || 0) * (parseFloat(l.altura) || 0);
+}
+function calcularUnitario(l) {
+  return (parseFloat(l.costo) || 0) + (parseFloat(l.utilidad) || 0);
+}
+function calcularSubtotal(l) {
+  return calcularUnitario(l) * (parseFloat(l.piezas) || 1);
+}
+
+// ── Agregar fila
+function agregarFila() {
+  const id    = ++contadorLineas;
+  const idlin = String(id).padStart(2, '0');
+  lineas.push({
+    id, idlin,
+    checkResalta: false,
+    piezas: 1, descripcion: '', nota: '',
+    base: 0, altura: 0, costo: 0, utilidad: 0,
+    sum: false, imp: false, cor: false, apl: false,
+    ins: false, des: false, man: false, ilu: false,
+    adjuntos: []
+  });
+  renderLineas();
+  setTimeout(function() {
+    const el = document.querySelector('[data-linea-id="' + id + '"] .input-desc');
+    if (el) el.focus();
+  }, 30);
+}
+
+// ── Eliminar fila
+function eliminarLinea(id) {
+  lineas = lineas.filter(function(l) { return l.id !== id; });
+  lineas.forEach(function(l, i) { l.idlin = String(i + 1).padStart(2, '0'); });
+  contadorLineas = lineas.length;
+  renderLineas();
+}
+
+// ── Actualizar campo — NO re-renderiza, solo actualiza celdas calculadas
+function actualizarLinea(id, campo, valor) {
+  const l = lineas.find(function(l) { return l.id === id; });
+  if (!l) return;
+  l[campo] = valor;
+  const fila = document.querySelector('[data-linea-id="' + id + '"]');
+  if (fila) {
+    const m2El = fila.querySelector('.m2-fila');
+    const utEl = fila.querySelector('.unit-fila');
+    const stEl = fila.querySelector('.sub-fila');
+    if (m2El) m2El.textContent = calcularM2(l).toFixed(2);
+    if (utEl) utEl.textContent = '$' + calcularUnitario(l).toFixed(2);
+    if (stEl) stEl.textContent = '$' + calcularSubtotal(l).toFixed(2);
+  }
+}
+
+// ── Render completo (solo al agregar/eliminar filas)
+function renderLineas() {
+  const tbody = document.getElementById('lineasContainer');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  lineas.forEach(function(l, idx) {
+    const tb  = 10 + idx * 10;
+    const row = document.createElement('tr');
+    row.setAttribute('data-linea-id', l.id);
+
+
+
+
+
+
+row.innerHTML =
+  '<td class="tc">' + (idx + 1) + '</td>' +                          // ★ índice visual
+
+  '<td class="tc td-azul">' +                                         // ★ checkbox resalta
+    '<input type="checkbox"' + (l.checkResalta ? ' checked' : '') +
+    ' onchange="actualizarLinea(' + l.id + ',\'checkResalta\',this.checked)" tabindex="-1">' +
+  '</td>' +
+
+  '<td class="tc" style="color:var(--n-blue);font-weight:bold;">' + l.idlin + '</td>' +  // # idlin
+
+  '<td class="td-am">' +                                              // Pzs
+    '<input type="number" class="excel-input" value="' + l.piezas + '"' +
+    ' oninput="actualizarLinea(' + l.id + ',\'piezas\',this.value)" tabindex="' + tb + '">' +
+  '</td>' +
+
+  '<td class="td-am td-wide">' +                                      // Descripción
+    '<textarea class="excel-input input-desc"' +
+    ' oninput="actualizarLinea(' + l.id + ',\'descripcion\',this.value)"' +
+    ' tabindex="' + (tb+1) + '">' + l.descripcion + '</textarea>' +
+  '</td>' +
+
+  '<td class="td-am td-wide">' +                                      // Nota
+    '<textarea class="excel-input"' +
+    ' oninput="actualizarLinea(' + l.id + ',\'nota\',this.value)"' +
+    ' tabindex="' + (tb+2) + '">' + l.nota + '</textarea>' +
+  '</td>' +
+
+  '<td class="td-am">' +                                              // Base
+    '<input type="number" step="0.01" class="excel-input" value="' + (l.base || '') + '"' +
+    ' oninput="actualizarLinea(' + l.id + ',\'base\',this.value)" tabindex="' + (tb+3) + '">' +
+  '</td>' +
+
+  '<td class="td-am">' +                                              // Alt
+    '<input type="number" step="0.01" class="excel-input" value="' + (l.altura || '') + '"' +
+    ' oninput="actualizarLinea(' + l.id + ',\'altura\',this.value)" tabindex="' + (tb+4) + '">' +
+  '</td>' +
+
+  '<td class="tc m2-fila">' + calcularM2(l).toFixed(2) + '</td>' +   // m²
+
+  '<td class="td-am">' +                                              // Costo
+    '<input type="number" step="0.01" class="excel-input" value="' + (l.costo || '') + '"' +
+    ' oninput="actualizarLinea(' + l.id + ',\'costo\',this.value)" tabindex="' + (tb+5) + '">' +
+  '</td>' +
+
+  '<td class="td-am">' +                                              // Utilidad
+    '<input type="number" step="0.01" class="excel-input" value="' + (l.utilidad || '') + '"' +
+    ' oninput="actualizarLinea(' + l.id + ',\'utilidad\',this.value)" tabindex="' + (tb+6) + '">' +
+  '</td>' +
+
+  '<td class="tc unit-fila">$' + calcularUnitario(l).toFixed(2) + '</td>' +   // Unitario
+  '<td class="tc sub-fila" style="color:var(--n-green);">$' + calcularSubtotal(l).toFixed(2) + '</td>' +  // Subtotal
+
+  '<td class="tc td-azul">' +                                         // 📎
+    '<label class="btn-adj" title="Adjuntar">' +
+      '<input type="file" multiple style="display:none" onchange="abrirAdjLinea(' + l.id + ',this.files)">📎' +
+      (l.adjuntos.length ? ' ' + l.adjuntos.length : '') +
+    '</label>' +
+  '</td>' +
+
+  _checkTd(l.id, 'sum', l.sum, tb+7)  +
+  _checkTd(l.id, 'imp', l.imp, tb+8)  +
+  _checkTd(l.id, 'cor', l.cor, tb+9)  +
+  _checkTd(l.id, 'apl', l.apl, tb+10) +
+  _checkTd(l.id, 'ins', l.ins, tb+11) +
+  _checkTd(l.id, 'des', l.des, tb+12) +
+  _checkTd(l.id, 'man', l.man, tb+13) +
+  _checkTd(l.id, 'ilu', l.ilu, tb+14) +
+
+  '<td class="tc td-azul">' +                                         // ❌
+    '<button class="btn-eliminar" onclick="eliminarLinea(' + l.id + ')" tabindex="-1">❌</button>' +
+  '</td>';
+
+
+
+
+
+
+    tbody.appendChild(row);
+  });
+}
+
+function _checkTd(id, campo, val, tb) {
+  return '<td class="tc td-azul"><input type="checkbox"' + (val ? ' checked' : '') +
+    ' onchange="actualizarLinea(' + id + ',\'' + campo + '\',this.checked)" tabindex="' + tb + '"></td>';
+}
+
+// ── ADJUNTOS ──────────────────────────────────────────────────────────────────
+
+function abrirAdjLinea(lineaId, files) {
+  if (!files || !files.length) return;
+  const l = lineas.find(function(l) { return l.id === lineaId; });
+  if (!l) return;
+
+  const idcot = parseInt(document.getElementById('displayIdcot').textContent) || 0;
+  const idcon = (contactoSeleccionado && contactoSeleccionado.idcon) ? contactoSeleccionado.idcon : 0;
+
+  Array.from(files).forEach(function(file) {
+    const adjNum = l.adjuntos.length + 1;
+    const chipId = 'adj_' + lineaId + '_' + adjNum + '_' + Date.now();
+    _adjAgregarChip(lineaId, chipId, file.name, 'subiendo');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const base64 = e.target.result.split(',')[1];
+      google.script.run
+        .withSuccessHandler(function(nombreFinal) {
+          l.adjuntos.push({ nombre: file.name, nombreFinal: nombreFinal,
+                            tipo: file.type || 'application/octet-stream', base64: base64 });
+          _adjActualizarChip(chipId, nombreFinal, 'listo');
+          _adjActualizarBoton(lineaId, l.adjuntos.length);
+        })
+        .withFailureHandler(function() {
+          _adjActualizarChip(chipId, file.name, 'error');
+        })
+        .upSubirAdjunto({
+          idcot: idcot, idcon: idcon, adjNum: adjNum,
+          base64: base64, nombreOriginal: file.name,
+          mimeType: file.type || 'application/octet-stream'
+        });
+    };
+    reader.onerror = function() { _adjActualizarChip(chipId, file.name, 'error'); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function _adjAgregarChip(lineaId, chipId, nombre, estado) {
+  let zona = document.getElementById('adjZona_' + lineaId);
+  if (!zona) {
+    zona = document.createElement('div');
+    zona.id        = 'adjZona_' + lineaId;
+    zona.className = 'adj-zona';
+    const fila = document.querySelector('[data-linea-id="' + lineaId + '"]');
+    if (fila) fila.after(zona);
+  }
+  const corto = nombre.length > 22 ? nombre.substring(0, 20) + '\u2026' : nombre;
+  const chip  = document.createElement('span');
+  chip.id = chipId;
+  chip.className = 'up-chip subiendo';
+  chip.title = nombre;
+  chip.textContent = '\u23F3 ' + corto;
+  zona.appendChild(chip);
+}
+
+function _adjActualizarChip(chipId, nombre, estado) {
+  const chip = document.getElementById(chipId);
+  if (!chip) return;
+  const corto = nombre.length > 22 ? nombre.substring(0, 20) + '\u2026' : nombre;
+  chip.className   = 'up-chip ' + estado;
+  chip.title       = nombre;
+  chip.textContent = (estado === 'listo' ? '\u2713 ' : '\u2717 ') + corto;
+}
+
+function _adjActualizarBoton(lineaId, count) {
+  const fila = document.querySelector('[data-linea-id="' + lineaId + '"]');
+  if (!fila) return;
+  const label = fila.querySelector('.btn-adj');
+  if (label) label.childNodes[0].textContent = '📎 ' + count + ' ';
+}
+
+</script>
