@@ -1,0 +1,88 @@
+function aGuardarCaptura(cotData) {
+  try {
+    var libro = SpreadsheetApp.openById("19kXge4GRISHVsvcB127WGV3IpKiVO9rDfLU-nCm100A");
+    var hojaEnc = libro.getSheetByName('Enc');
+    var hojaDet = libro.getSheetByName('Det');
+
+    const idcot = generarNuevoIdcot();
+    const timestamp = new Date();
+
+    // Contar checks
+    let numChecked = 0;
+    if (cotData.modulos) cotData.modulos.forEach(l => { if (l.checkResalta) numChecked++; });
+
+    // ── ENC: idcot | timestamp | titulo | idcon | numChecked
+    hojaEnc.appendRow([
+      idcot, timestamp,
+      cotData.titulo || '',
+      cotData.cliente.idcon || '',
+      numChecked
+    ]);
+
+    // ── DET
+    if (cotData.modulos && cotData.modulos.length > 0) {
+      cotData.modulos.forEach((linea, idx) => {
+        const iddet = generarNuevoIddet();
+        const idlin = String(idx + 1).padStart(2, '0');
+        const base = Number(linea.base) || 0;
+        const altura = Number(linea.altura) || 0;
+        const m2 = base * altura;
+        const piezas = Number(linea.piezas) || 1;
+
+        // Subir adjuntos
+        const uploaded = [];
+        if (linea.adjuntos && linea.adjuntos.length > 0) {
+          linea.adjuntos.forEach((adj, adjIdx) => {
+            try {
+              const base64Data = adj.base64 || (adj.data ? adj.data.split(',')[1] : null);
+              if (!base64Data) return;
+
+              const bytes = Utilities.base64Decode(base64Data);
+              const blob = Utilities.newBlob(bytes, adj.tipo || 'application/octet-stream', adj.nombre);
+              const carpeta = DriveApp.getFolderById('1STGqtBigDkyVZnJBRCdIaY7vNeIF-sht');
+              let archivo = carpeta.createFile(blob);
+
+              const dotPos = adj.nombre.lastIndexOf('.');
+              const sinExt = dotPos > 0 ? adj.nombre.substring(0, dotPos) : adj.nombre;
+              const ext = dotPos > 0 ? '.' + adj.nombre.substring(dotPos + 1).toLowerCase() : '';
+              const cot = String(idcot).padStart(4, '0');
+              const con = String(cotData.cliente.idcon || 0).padStart(3, '0');
+              const linStr = String(idx + 1).slice(-1);
+              const adjStr = String(adjIdx + 1).slice(-1);
+              const nuevoNombre = cot + con + '.A' + linStr + adjStr + ' ' + NOMEN(sinExt) + ext;
+
+              archivo.setName(nuevoNombre);
+              uploaded.push({ original: adj.nombre, nuevo: nuevoNombre, url: archivo.getUrl() });
+              Logger.log('✅ Adjunto: ' + nuevoNombre);
+            } catch (e) {
+              Logger.log('❌ Adjunto error: ' + e.message);
+            }
+          });
+        }
+        hojaDet.appendRow([
+          iddet, idcot, idlin,
+          linea.checkResalta ? 'TRUE' : 'FALSE',
+          piezas,
+          linea.descripcion || '',
+          linea.nota || '',
+          base, altura, m2,
+          JSON.stringify(uploaded),
+          linea.sum ? 'TRUE' : 'FALSE',
+          linea.imp ? 'TRUE' : 'FALSE',
+          linea.cor ? 'TRUE' : 'FALSE',
+          linea.apl ? 'TRUE' : 'FALSE',
+          linea.ins ? 'TRUE' : 'FALSE',
+          linea.des ? 'TRUE' : 'FALSE',
+          linea.man ? 'TRUE' : 'FALSE',
+          linea.ilu ? 'TRUE' : 'FALSE'
+        ]);
+      });
+    }
+
+    return { success: true, idcot };
+
+  } catch (error) {
+    Logger.log('Error aGuardarCaptura: ' + error.message);
+    throw new Error('Error al guardar: ' + error.message);
+  }
+}
