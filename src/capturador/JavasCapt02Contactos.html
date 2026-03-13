@@ -1,0 +1,111 @@
+<!--   JavasCapt02Contactos -->
+
+
+<script>
+  
+// ═══════════════════════════════════════════════
+//  BUSCADOR DE CONTACTOS
+// ═══════════════════════════════════════════════
+function setupBuscadorContactos() {
+  const inp = document.getElementById('inputContacto');
+  if (!inp) return;
+
+  inp.addEventListener('input', function () {
+    clearTimeout(timeoutBusqueda);
+    const term = this.value.trim();
+    if (term.length < 2) { ocultarResultados(); return; }
+    timeoutBusqueda = setTimeout(() => {
+      google.script.run
+        .withSuccessHandler(mostrarResultados)
+        .withFailureHandler(e => console.error(e))
+        .buscarcontactosD(term);
+    }, 280);
+  });
+
+  inp.addEventListener('keydown', function (e) {
+    const div = document.getElementById('resultadosBusqueda');
+    if (!div || div.style.display === 'none' || resultadosActuales.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      indiceSelecionado = Math.min(indiceSelecionado + 1, resultadosActuales.length - 1);
+      resaltarOpcion();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      indiceSelecionado = Math.max(indiceSelecionado - 1, 0);
+      resaltarOpcion();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (indiceSelecionado >= 0 && indiceSelecionado < resultadosActuales.length)
+        seleccionarContacto(resultadosActuales[indiceSelecionado]);
+    } else if (e.key === 'Escape') {
+      ocultarResultados();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-wrapper')) ocultarResultados();
+  });
+}
+
+let resultadosActuales = [];
+let indiceSelecionado  = -1;
+
+function ocultarResultados() {
+  const d = document.getElementById('resultadosBusqueda');
+  if (d) d.style.display = 'none';
+  indiceSelecionado = -1;
+}
+
+function mostrarResultados(resultados) {
+  resultadosActuales = resultados || [];
+  indiceSelecionado  = -1;
+  const div = document.getElementById('resultadosBusqueda');
+  if (!div) return;
+  if (!resultados || resultados.length === 0) {
+    div.innerHTML = '<div style="padding:8px 12px;color:var(--n-red);">Sin resultados</div>';
+    div.style.display = 'block';
+    return;
+  }
+  let html = '<ul>';
+  resultados.forEach(c => {
+    const data = JSON.stringify(c).replace(/'/g, '&#39;');
+    html += `<li onclick='seleccionarContacto(${data})'>
+      <strong>${c.contacto || 'Sin nombre'}</strong><br>
+      <span style="font-size:11px;opacity:.7;">${c.alias || ''} ${c.puesto || ''} ${c.empresa || ''} ${c.celular ? '· ' + c.celular : ''}</span>
+    </li>`;
+  });
+  html += '</ul>';
+  div.innerHTML = html;
+  div.style.display = 'block';
+}
+
+function resaltarOpcion() {
+  const lis = document.querySelectorAll('#resultadosBusqueda li');
+  lis.forEach((li, i) => {
+    li.style.background = (i === indiceSelecionado) ? 'rgba(46,134,222,0.3)' : '';
+    if (i === indiceSelecionado) li.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function seleccionarContacto(c) {
+  contactoSeleccionado = c;
+  document.getElementById('inputContacto').value = c.contacto + (c.empresa ? ' · ' + c.empresa : '');
+  ocultarResultados();
+
+  const card = document.getElementById('clientCard');
+  card.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <span style="color:var(--n-blue);font-weight:700;">${c.contacto || ''}</span>
+        <span style="font-size:12px;opacity:.8;"> · ${c.puesto || ''} · ${c.empresa || ''}</span>
+      </div>
+      <div style="font-size:11px;text-align:right;">
+        ${c.celular ? '📱 ' + c.celular + '<br>' : ''}
+        ${c.email   ? '✉ '  + c.email           : ''}
+      </div>
+    </div>`;
+  card.style.display = 'block';
+  document.getElementById('inputTitulo').focus();
+}
+
+</script>
