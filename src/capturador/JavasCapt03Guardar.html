@@ -1,0 +1,101 @@
+<!-- JavasCapt03Guardar.html -->
+
+
+<script>
+
+
+function guardarCotizacion() {
+  if (!contactoSeleccionado) { alert('Selecciona un contacto primero'); return; }
+  const titulo = document.getElementById('inputTitulo').value.trim();
+  if (!titulo) { alert('Escribe un título'); return; }
+  if (lineas.length === 0) { alert('Agrega al menos una línea'); return; }
+
+  const cotData = {
+    titulo,
+    cliente: {
+      idcon:    contactoSeleccionado.idcon    || '',
+      contacto: contactoSeleccionado.contacto || '',
+      puesto:   contactoSeleccionado.puesto   || '',
+      alias:    contactoSeleccionado.alias    || '',
+      celular:  contactoSeleccionado.celular  || '',
+      email:    contactoSeleccionado.email    || '',
+      empresa:  contactoSeleccionado.empresa  || '',
+      razon:    contactoSeleccionado.razon    || ''
+    },
+modulos: lineas.map(l => ({
+  checkResalta: l.checkResalta || false,
+  idlin:        l.idlin        || '',
+  descripcion:  l.descripcion  || '',
+  nota:         l.nota         || '',
+  base:         Number(l.base)   || 0,
+  altura:       Number(l.altura) || 0,
+  piezas:       Number(l.piezas) || 1,
+  sum: l.sum || false,
+  imp: l.imp || false,
+  cor: l.cor || false,
+  apl: l.apl || false,
+  ins: l.ins || false,
+  des: l.des || false,
+  man: l.man || false,
+  ilu: l.ilu || false,
+  adjuntos: (l.adjuntos || []).map(adj => ({
+    nombre: adj.nombre,
+    tipo:   adj.tipo,
+    base64: adj.base64
+  }))
+}))
+
+  };
+
+  const btn = document.getElementById('btnGuardar');
+  btn.textContent = 'Guardando...';
+  btn.disabled = true;
+
+  google.script.run
+    .withSuccessHandler(function(result) {
+      btn.textContent = 'Guardar';
+      btn.disabled = false;
+      if (result.success) {
+        alert('✅ Cotización #' + result.idcot + ' guardada');
+        lineas = []; contadorLineas = 0; contactoSeleccionado = null;
+        document.getElementById('inputContacto').value = '';
+        document.getElementById('inputTitulo').value   = '';
+        document.getElementById('clientCard').style.display = 'none';
+        renderLineas();
+        cargarProximoIdcot();
+      }
+    })
+    .withFailureHandler(function(e) {
+      btn.textContent = 'Guardar';
+      btn.disabled = false;
+      alert('❌ Error: ' + e.message);
+    })
+    .aGuardarCaptura(cotData);
+}
+
+function cargarProximoIdcot() {
+  google.script.run
+    .withSuccessHandler(function(id) {
+      const e = document.getElementById('displayIdcot');
+      if (e) e.textContent = String(id).padStart(4, '0');
+    })
+    .generarNuevoIdcot();
+}
+
+window.addEventListener('load', function() {
+  cargarProximoIdcot();
+  setupBuscadorContactos();
+  document.getElementById('btnAgregarFila').addEventListener('click', agregarFila);
+  document.getElementById('btnGuardar').addEventListener('click', guardarCotizacion);
+  document.getElementById('btnCancelar').addEventListener('click', function() {
+    if (confirm('¿Cancelar? Se perderán los datos')) google.script.host.close();
+  });
+  agregarFila();
+  updateDateTime();
+  setInterval(updateDateTime, 1000);
+});
+
+
+
+
+</script>
