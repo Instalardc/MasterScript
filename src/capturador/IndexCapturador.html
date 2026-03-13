@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <?!= incluirEncabezado(); ?>
+  <style>
+    <?!=include('Styles');
+    ?>
+  </style>
+</head>
+
+<body>
+  <div class="header">
+    <div class="logo-3d">
+      <div class="logo-metal-texture">
+        <span>C</span><span>A</span><span>P</span><span>T</span><span>U</span><span>R</span><span>A</span><span>D</span><span>O</span><span>R</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="glass">
+
+      <div class="form-row-triple">
+        <div class="form-group">
+          <label>Contacto</label>
+          <div class="search-wrapper">
+            <input type="text" id="inputContacto"
+                   placeholder="Buscar contacto o empresa..."
+                   autocomplete="off" tabindex="1">
+            <div id="resultadosBusqueda" class="resultadosbusqueda" style="display:none;"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Titulo</label>
+          <input type="text" id="inputTitulo"
+                 placeholder="Descripcion breve del proyecto..."
+                 maxlength="100" tabindex="2">
+        </div>
+        <div class="form-group">
+          <label style="text-align:center;">idcot</label>
+          <div class="btn-neon idcot-display" id="displayIdcot">0000</div>
+        </div>
+      </div>
+
+      <div id="clientCard" class="glass" style="display:none;"></div>
+      <div class="separator01"></div>
+
+
+
+
+
+      <!-- Encabezado tabla -->
+      <?!= include('Lineas'); ?>
+
+
+
+
+
+      <div class="barra-acciones">
+<!-- 
+        <button class="btn-neon btn-green"  id="btnAgregarFila">&#10133; L&#237;nea</button> -->
+        <button class="btn-neon btn-red"    id="btnCancelar">Cancelar</button>
+        <button class="btn-neon btn-purple" id="btnGuardar">&#128190; Guardar</button>
+      </div>
+
+    </div>
+  </div>
+
+  <?!= include('JavasCapt01Lineas'); ?>
+  <?!= include('JavasCapt02Contactos'); ?>
+  <?!= include('JavasCapt03Guardar'); ?>
+</body>
+
+</html>
